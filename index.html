@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;700;900&display=swap" rel="stylesheet">
+<title>The Bug Test</title>
+
+<style>
+body{background:black;color:white;font-family:Lato;text-align:center;margin:0}
+h1{font-size:44px;margin:10px}
+
+#box{
+border:3px solid white;
+width:90%;max-width:520px;margin:auto;padding:18px;
+font-size:28px;font-weight:900
+}
+
+button{padding:12px 18px;margin:8px;font-size:18px;background:white;color:black;border:none;cursor:pointer}
+button:disabled{opacity:0.4;cursor:not-allowed}
+.bigBtn{font-size:32px;padding:20px 40px}
+
+.card{display:inline-block;border:3px solid white;margin:12px;padding:15px;background:#111;font-size:40px}
+ul{list-style:none;padding:0}
+li{border:2px solid white;margin:6px;padding:12px;cursor:grab}
+
+#gameOver{display:none;font-size:44px;margin-top:20px}
+</style>
+</head>
+
+<body>
+
+<h1>The Bug Test</h1>
+
+<div id="box">
+Score: <span id="score">0</span><br>
+Time Left: <span id="time">900</span> sec
+</div>
+
+<div id="game"></div>
+
+<div id="gameOver">
+GAME OVER<br><br>
+<button class="bigBtn" onclick="location.reload()">Play Again</button>
+</div>
+
+<script>
+let score=0,time=900,qIndex=0,gameOver=false;
+const game=document.getElementById("game")
+const scoreSpan=document.getElementById("score")
+const timeSpan=document.getElementById("time")
+const gameOverDiv=document.getElementById("gameOver")
+
+setInterval(()=>{
+if(gameOver)return;
+time--; timeSpan.innerText=time;
+if(time<=0) endGame();
+},1000)
+
+function addScore(){ score+=Math.floor(time/4)+50; scoreSpan.innerText=score }
+
+// ✅ FIXED FUNCTION
+function endGame(){
+gameOver=true;
+
+// disable ONLY game buttons, not Play Again
+document.querySelectorAll("#game button").forEach(btn=>{
+btn.disabled=true;
+});
+
+game.innerHTML="";
+gameOverDiv.style.display="block";
+}
+
+function shuffle(a){return a.sort(()=>Math.random()-0.5)}
+
+const questions=shuffle([
+{type:"mcq",title:"Find the odd one out",opts:["Airplane","Banana","Ball","Bike"],ans:"Airplane"},
+{type:"owl",title:"Spot the difference"},
+{type:"house",title:"Rearrange the steps to build a house"},
+{type:"mcq",title:"Find the odd one out",opts:["Rain","Rat","Rope","Sunflower"],ans:"Sunflower"},
+{type:"cat",title:"Spot the difference"},
+{type:"cake",title:"Rearrange the steps to bake a cake"}
+])
+
+function nextQ(){
+if(qIndex>=questions.length)return endGame()
+let q=questions[qIndex]
+game.innerHTML="<h2>"+q.title+"</h2>"
+
+if(q.type=="mcq"){
+q.opts.forEach(o=>{
+let b=document.createElement("button");b.innerText=o
+b.onclick=()=>{o==q.ans?(addScore(),qIndex++,nextQ()):endGame()}
+game.appendChild(b)
+})
+}
+
+if(q.type=="owl"){
+game.innerHTML+=`
+<div class="card">🌕<br>🌳<br>🦉<br>🦶🦶🦶</div>
+<div class="card">🌕<br>🌳<br>🦉<br>🦶🦶</div><br>`
+addOptions(["The moon has vanished","There are only two claws","The owl is a different colour"],"There are only two claws")
+}
+
+if(q.type=="cat"){
+game.innerHTML+=`
+<div class="card">🌳<br>🐱<br>|||</div>
+<div class="card">🌳<br>🐱<br>||</div><br>`
+addOptions(["There are two extra paws","There are two extra eyes","There are only two whiskers"],"There are only two whiskers")
+}
+
+if(q.type=="house") renderDrag([
+"Add walls","Clean land","Build frame","Build base","Add roof","Turn on lights","Add electricity",
+"Add doors/windows","Add water system","House ready","Paint house","Finish floors"],
+["Clean land","Build base","Build frame","Add walls","Add roof","Add doors/windows",
+"Add water system","Add electricity","Turn on lights","Paint house","Finish floors","House ready"])
+
+if(q.type=="cake") renderDrag([
+"Mix atta with baking powder and soda","Gather the ingredients","Let it bake for 30 minutes",
+"Mix curd, oil, and jaggery together","Put the cake in an airfryer","The cake is ready",
+"Pour the batter in the cup","Wait for 10 - 15 mins","Mix The dry mix with the wet mix","Line the baking cup with oil"],
+["Gather the ingredients","Mix atta with baking powder and soda","Mix curd, oil, and jaggery together",
+"Mix The dry mix with the wet mix","Line the baking cup with oil","Pour the batter in the cup",
+"Wait for 10 - 15 mins","Put the cake in an airfryer","Let it bake for 30 minutes","The cake is ready"])
+}
+
+function addOptions(arr,correct){
+arr.forEach(o=>{
+let b=document.createElement("button");b.innerText=o
+b.onclick=()=>{o==correct?(addScore(),qIndex++,nextQ()):endGame()}
+game.appendChild(b)
+})
+}
+
+function renderDrag(arr,correct){
+let ul=document.createElement("ul");shuffle(arr)
+arr.forEach(t=>{
+let li=document.createElement("li");li.draggable=true;li.innerText=t
+li.ondragstart=e=>e.dataTransfer.setData("text",t)
+li.ondragover=e=>e.preventDefault()
+li.ondrop=e=>{
+e.preventDefault()
+let d=e.dataTransfer.getData("text")
+ul.insertBefore([...ul.children].find(x=>x.innerText==d),li)
+}
+ul.appendChild(li)
+})
+game.appendChild(ul)
+
+let b=document.createElement("button");b.innerText="Submit Order"
+b.onclick=()=>{
+let user=[...ul.children].map(x=>x.innerText)
+JSON.stringify(user)==JSON.stringify(correct)?(addScore(),qIndex++,nextQ()):endGame()
+}
+game.appendChild(b)
+}
+
+nextQ()
+</script>
+</body>
+</html>
